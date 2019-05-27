@@ -152,7 +152,7 @@ class HttpSession(requests.Session):
                 new_source = source.SourceAddressAdapter(source_ip)
                 self.mount('http://', new_source)
                 self.mount('https://', new_source)
-                response.append(self.get(url))
+
             return response
     
     def _send_request_safe_mode(self, method, url, **kwargs):
