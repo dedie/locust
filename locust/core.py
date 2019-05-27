@@ -193,7 +193,7 @@ class HttpLocust(Locust):
         if self.host is None:
             raise LocustError("You must specify the base host. Either in the host attribute in the Locust class, or on the command line using the --host option.")
         
-        self.client = HttpSession(base_url=self.host)
+        self.client = HttpSession(base_url=self.host, source_ip=None)
 
 
 class TaskSetMeta(type):

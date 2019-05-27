@@ -8,6 +8,8 @@ from requests.auth import HTTPBasicAuth
 from requests.exceptions import (InvalidSchema, InvalidURL, MissingSchema,
                                  RequestException)
 
+from requests_toolbelt.adapters import source
+
 from six.moves.urllib.parse import urlparse, urlunparse
 
 from . import events
@@ -71,7 +73,7 @@ class HttpSession(requests.Session):
         else:
             return "%s%s" % (self.base_url, path)
     
-    def request(self, method, url, name=None, catch_response=False, **kwargs):
+    def request(self, method, url, name=None, catch_response=False, source_ip=None **kwargs):
         """
         Constructs and sends a :py:class:`requests.Request`.
         Returns :py:class:`requests.Response` object.
@@ -146,6 +148,11 @@ class HttpSession(requests.Session):
                     response_time=request_meta["response_time"],
                     response_length=request_meta["content_size"],
                 )
+            if source_ip is not None:
+                new_source = source.SourceAddressAdapter(source_ip)
+                self.mount('http://', new_source)
+                self.mount('https://', new_source)
+                response.append(self.get(url))
             return response
     
     def _send_request_safe_mode(self, method, url, **kwargs):
