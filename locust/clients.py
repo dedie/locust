@@ -2,11 +2,15 @@ import re
 import time
 
 import requests
+
 import six
+
 from requests import Request, Response
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import (InvalidSchema, InvalidURL, MissingSchema,
                                  RequestException)
+
+import urllib3
 
 from requests_toolbelt.adapters import source
 
@@ -102,32 +106,40 @@ class HttpSession(requests.Session):
         :param verify: (optional) if ``True``, the SSL cert will be verified. A CA_BUNDLE path can also be provided.
         :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
         """
-        
+
         # prepend url with hostname unless it's already an absolute URL
         url = self._build_url(url)
-        
+
         # store meta data that is used when reporting the request to locust's statistics
         request_meta = {}
-        
+
         # set up pre_request hook for attaching meta data to the request object
         request_meta["method"] = method
         request_meta["start_time"] = time.time()
-        
+
+        # change IP
+        if source_ip is not None:
+            real_create_conn = urllib3.util.connection.create_connection
+
+            def set_src_addr(address, timeout, *args, **kw):
+                source_address = (source_ip, 0)
+                return real_create_conn(address, timeout=timeout, source_address=source_address)
+
+            urllib3.util.connection.create_connection = set_src_addr
+
         response = self._send_request_safe_mode(method, url, **kwargs)
-        
+
         # record the consumed time
         request_meta["response_time"] = (time.time() - request_meta["start_time"]) * 1000
-        
-    
         request_meta["name"] = name or (response.history and response.history[0] or response).request.path_url
-        
+
         # get the length of the content, but if the argument stream is set to True, we take
         # the size from the content-length header, in order to not trigger fetching of the body
         if kwargs.get("stream", False):
             request_meta["content_size"] = int(response.headers.get("content-length") or 0)
         else:
             request_meta["content_size"] = len(response.content or b"")
-        
+
         if catch_response:
             response.locust_request_meta = request_meta
             return ResponseContextManager(response)
