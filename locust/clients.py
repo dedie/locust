@@ -148,10 +148,10 @@ class HttpSession(requests.Session):
                     response_time=request_meta["response_time"],
                     response_length=request_meta["content_size"],
                 )
-            if source_ip is not None:
-                new_source = source.SourceAddressAdapter(source_ip)
-                self.mount('http://', new_source)
-                self.mount('https://', new_source)
+            # if source_ip is not None:
+            #     new_source = source.SourceAddressAdapter(source_ip)
+            #     self.mount('http://', new_source)
+            #     self.mount('https://', new_source)
 
             return response
     
