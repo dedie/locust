@@ -2,17 +2,13 @@ import re
 import time
 
 import requests
-
 import six
-
 from requests import Request, Response
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import (InvalidSchema, InvalidURL, MissingSchema,
                                  RequestException)
 
-import urllib3
-
-from requests_toolbelt.adapters import source
+from requests_toolbelt.adapters.source import SourceAddressAdapter  # For source IP
 
 from six.moves.urllib.parse import urlparse, urlunparse
 
@@ -77,7 +73,7 @@ class HttpSession(requests.Session):
         else:
             return "%s%s" % (self.base_url, path)
     
-    def request(self, method, url, name=None, catch_response=False, source_ip=None, **kwargs):
+    def request(self, method, url, src_url=None, name=None, catch_response=False, **kwargs):
         """
         Constructs and sends a :py:class:`requests.Request`.
         Returns :py:class:`requests.Response` object.
@@ -117,20 +113,11 @@ class HttpSession(requests.Session):
         request_meta["method"] = method
         request_meta["start_time"] = time.time()
 
-        # change IP
-        if source_ip is not None:
-            real_create_conn = urllib3.util.connection.create_connection
-
-            def set_src_addr(address, timeout, *args, **kw):
-                source_address = (source_ip, 0)
-                return real_create_conn(address, timeout=timeout, source_address=source_address)
-
-            urllib3.util.connection.create_connection = set_src_addr
-
-        response = self._send_request_safe_mode(method, url, **kwargs)
+        response = self._send_request_safe_mode(method, url, src_url, **kwargs)
 
         # record the consumed time
         request_meta["response_time"] = (time.time() - request_meta["start_time"]) * 1000
+
         request_meta["name"] = name or (response.history and response.history[0] or response).request.path_url
 
         # get the length of the content, but if the argument stream is set to True, we take
@@ -160,21 +147,20 @@ class HttpSession(requests.Session):
                     response_time=request_meta["response_time"],
                     response_length=request_meta["content_size"],
                 )
-            # if source_ip is not None:
-            #     new_source = source.SourceAddressAdapter(source_ip)
-            #     self.mount('http://', new_source)
-            #     self.mount('https://', new_source)
-
             return response
-    
-    def _send_request_safe_mode(self, method, url, **kwargs):
+
+    def _send_request_safe_mode(self, method, url, src_url, **kwargs):
         """
         Send an HTTP request, and catch any exception that might occur due to connection problems.
-        
+
         Safe mode has been removed from requests 1.x.
         """
+        s = requests.Session
+        if src_url is not None:
+            s.mount(self, 'http://', SourceAddressAdapter(src_url))
+            s.mount(self, 'https://', SourceAddressAdapter((src_url, 8999)))
         try:
-            return requests.Session.request(self, method, url, **kwargs)
+            return s.request(self, method, url, **kwargs)
         except (MissingSchema, InvalidSchema, InvalidURL):
             raise
         except RequestException as e:
