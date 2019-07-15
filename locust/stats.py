@@ -299,6 +299,10 @@ class StatsEntry(object):
         return median_from_dict(self.num_requests, self.response_times)
 
     @property
+    def time_stamp(self):
+        return float(self.last_request_timestamp - self.stats.start_time)
+
+    @property
     def current_rps(self):
         if self.stats.last_request_timestamp is None:
             return 0
@@ -604,7 +608,7 @@ events.slave_report += on_slave_report
 
 
 def print_stats(stats):
-    console_logger.info((" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s  | %7s %7s") % ('Name', '# reqs', '# fails', 'Avg', 'Min', 'Max', 'Median', 'req/s'))
+    console_logger.info((" %-" + str(STATS_NAME_WIDTH) + "s %7s %12s %7s %7s %7s %7s  | %7s %7s") % ('Name', '# reqs', '# fails', 'T_Stamp','Avg', 'Min', 'Max', 'Median', 'req/s'))
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     total_rps = 0
     total_reqs = 0
@@ -687,6 +691,7 @@ def requests_csv():
             '"Name"',
             '"# requests"',
             '"# failures"',
+            '"Time Stamp"',
             '"Median response time"',
             '"Average response time"',
             '"Min response time"',
@@ -697,11 +702,12 @@ def requests_csv():
     ]
 
     for s in chain(sort_stats(runners.locust_runner.request_stats), [runners.locust_runner.stats.total]):
-        rows.append('"%s","%s",%i,%i,%i,%i,%i,%i,%i,%.2f' % (
+        rows.append('"%s","%s",%i,%i,%i,%i,%i,%i,%i,%i,%.2f' % (
             s.method,
             s.name,
             s.num_requests,
             s.num_failures,
+            s.time_stamp,
             s.median_response_time,
             s.avg_response_time,
             s.min_response_time or 0,
