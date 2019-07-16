@@ -299,10 +299,6 @@ class StatsEntry(object):
         return median_from_dict(self.num_requests, self.response_times)
 
     @property
-    def time_stamp(self):
-        return float(self.last_request_timestamp - self.stats.start_time)
-
-    @property
     def current_rps(self):
         if self.stats.last_request_timestamp is None:
             return 0
@@ -707,7 +703,7 @@ def requests_csv():
             s.name,
             s.num_requests,
             s.num_failures,
-            s.time_stamp,
+            s.last_request_timestamp,
             s.median_response_time,
             s.avg_response_time,
             s.min_response_time or 0,
