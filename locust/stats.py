@@ -103,7 +103,7 @@ class RequestStats(object):
         if not entry:
             entry = StatsError(method, name, error)
             self.errors[key] = entry
-        entry.occured()
+        entry.occurred()
     
     def get(self, name, method):
         """
@@ -384,11 +384,8 @@ class StatsEntry(object):
         return report
 
     def __str__(self):
-        try:
-            fail_percent = (self.num_failures/float(self.num_requests + self.num_failures))*100
-        except ZeroDivisionError:
-            fail_percent = 0
-        
+        fail_percent = self.fail_ratio * 100
+
         return (" %-" + str(STATS_NAME_WIDTH) + "s %7d %12s %7d %7d %7d  | %7d %7.2f") % (
             (self.method and self.method + " " or "") + self.name,
             self.num_requests,
@@ -485,11 +482,11 @@ class StatsEntry(object):
 
 
 class StatsError(object):
-    def __init__(self, method, name, error, occurences=0):
+    def __init__(self, method, name, error, occurrences=0):
         self.method = method
         self.name = name
         self.error = error
-        self.occurences = occurences
+        self.occurrences = occurrences
 
     @classmethod
     def parse_error(cls, error):
@@ -510,8 +507,8 @@ class StatsError(object):
         key = "%s.%s.%r" % (method, name, StatsError.parse_error(error))
         return hashlib.md5(key.encode('utf-8')).hexdigest()
 
-    def occured(self):
-        self.occurences += 1
+    def occurred(self):
+        self.occurrences += 1
 
     def to_name(self):
         return "%s %s: %r" % (self.method, 
@@ -522,7 +519,7 @@ class StatsError(object):
             "method": self.method,
             "name": self.name,
             "error": StatsError.parse_error(self.error),
-            "occurences": self.occurences
+            "occurrences": self.occurrences
         }
 
     @classmethod
@@ -531,7 +528,7 @@ class StatsError(object):
             data["method"], 
             data["name"], 
             data["error"], 
-            data["occurences"]
+            data["occurrences"]
         )
 
 
@@ -580,7 +577,7 @@ def on_slave_report(client_id, data):
         if error_key not in global_stats.errors:
             global_stats.errors[error_key] = StatsError.from_dict(error)
         else:
-            global_stats.errors[error_key].occurences += error["occurences"]
+            global_stats.errors[error_key].occurrences += error["occurrences"]
     
     # save the old last_request_timestamp, to see if we should store a new copy
     # of the response times in the response times cache
@@ -647,7 +644,7 @@ def print_error_report():
     console_logger.info(" %-18s %-100s" % ("# occurrences", "Error"))
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     for error in six.itervalues(global_stats.errors):
-        console_logger.info(" %-18i %-100s" % (error.occurences, error.to_name()))
+        console_logger.info(" %-18i %-100s" % (error.occurrences, error.to_name()))
     console_logger.info("-" * (80 + STATS_NAME_WIDTH))
     console_logger.info("")
 
@@ -747,7 +744,7 @@ def failures_csv():
             '"Method"',
             '"Name"',
             '"Error"',
-            '"Occurences"',
+            '"Occurrences"',
         ))
     ]
 
@@ -756,6 +753,6 @@ def failures_csv():
             s.method,
             s.name,
             s.error,
-            s.occurences,
+            s.occurrences,
         ))
     return "\n".join(rows)
