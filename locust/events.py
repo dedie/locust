@@ -1,5 +1,6 @@
 import gevent
 
+
 class EventHook(object):
     """
     Simple event class used to provide hooks for different types of events in Locust.
@@ -33,6 +34,7 @@ class EventHook(object):
         for handler in self._handlers:
             handler(**kwargs)
 
+
 request_success = EventHook()
 """
 *request_success* is fired when a request is completed successfully.
@@ -40,7 +42,8 @@ request_success = EventHook()
 Listeners should take the following arguments:
 
 * *request_type*: Request type method used
-* *name*: Path to the URL that was called (or override name if it was used in the call to the client)
+* *name*: Path to the URL that was called
+          (or override name if it was used in the call to the client)
 * *response_time*: Response time in milliseconds
 * *response_length*: Content-length of the response
 """
@@ -52,7 +55,8 @@ request_failure = EventHook()
 Event is fired with the following arguments:
 
 * *request_type*: Request type method used
-* *name*: Path to the URL that was called (or override name if it was used in the call to the client)
+* *name*: Path to the URL that was called
+          (or override name if it was used in the call to the client)
 * *response_time*: Time in milliseconds until exception was thrown
 * *exception*: Exception instance that was thrown
 """

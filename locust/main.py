@@ -1,7 +1,7 @@
+import importlib
 import inspect
 import logging
 import os
-import importlib
 import signal
 import socket
 import sys
@@ -23,6 +23,7 @@ from .util.time import parse_timespan
 
 _internals = [Locust, HttpLocust]
 version = locust.__version__
+
 
 def parse_options():
     """
@@ -47,7 +48,7 @@ def parse_options():
         default="",
         help="Host to bind the web interface to. Defaults to '' (all interfaces)"
     )
-    
+
     parser.add_option(
         '-P', '--port', '--web-port',
         type="int",
@@ -55,7 +56,7 @@ def parse_options():
         default=8089,
         help="Port on which to run web host"
     )
-    
+
     parser.add_option(
         '-f', '--locustfile',
         dest='locustfile',
@@ -90,7 +91,7 @@ def parse_options():
         default=False,
         help="Set locust to run in distributed mode with this process as slave"
     )
-    
+
     # master host options
     parser.add_option(
         '--master-host',
@@ -98,16 +99,19 @@ def parse_options():
         type='str',
         dest='master_host',
         default="127.0.0.1",
-        help="Host or IP address of locust master for distributed load testing. Only used when running with --slave. Defaults to 127.0.0.1."
+        help="Host or IP address of locust master for distributed load testing. \
+            Only used when running with --slave. Defaults to 127.0.0.1."
     )
-    
+
     parser.add_option(
         '--master-port',
         action='store',
         type='int',
         dest='master_port',
         default=5557,
-        help="The port to connect to that is used by the locust master for distributed load testing. Only used when running with --slave. Defaults to 5557. Note that slaves will also connect to the master node on this port + 1."
+        help="The port to connect to that is used by the locust master for distributed load \
+            testing. Only used when running with --slave. Defaults to 5557. Note that slaves \
+                will also connect to the master node on this port + 1."
     )
 
     parser.add_option(
@@ -116,16 +120,19 @@ def parse_options():
         type='str',
         dest='master_bind_host',
         default="*",
-        help="Interfaces (hostname, ip) that locust master should bind to. Only used when running with --master. Defaults to * (all available interfaces)."
+        help="Interfaces (hostname, ip) that locust master should bind to. Only used when running \
+            with --master. Defaults to * (all available interfaces)."
     )
-    
+
     parser.add_option(
         '--master-bind-port',
         action='store',
         type='int',
         dest='master_bind_port',
         default=5557,
-        help="Port that locust master should bind to. Only used when running with --master. Defaults to 5557. Note that Locust will also use this port + 1, so by default the master node will bind to 5557 and 5558."
+        help="Port that locust master should bind to. Only used when running with --master. \
+            Defaults to 5557. Note that Locust will also use this port + 1, so by default the \
+                master node will bind to 5557 and 5558."
     )
 
     parser.add_option(
@@ -152,7 +159,8 @@ def parse_options():
         type='int',
         dest='expect_slaves',
         default=1,
-        help="How many slaves master should expect to connect before starting the test (only when --no-web used)."
+        help="How many slaves master should expect to connect before starting the test \
+            (only when --no-web used)."
     )
 
     # if we should print stats in the console
@@ -161,7 +169,8 @@ def parse_options():
         action='store_true',
         dest='no_web',
         default=False,
-        help="Disable the web interface, and instead start running the test immediately. Requires -c and -r to be specified."
+        help="Disable the web interface, and instead start running the test immediately. \
+            Requires -c and -r to be specified."
     )
 
     # Number of clients
@@ -183,7 +192,7 @@ def parse_options():
         default=1,
         help="The rate per second in which clients are spawned. Only used together with --no-web"
     )
-    
+
     # Time limit of the test run
     parser.add_option(
         '-t', '--run-time',
@@ -191,9 +200,10 @@ def parse_options():
         type='str',
         dest='run_time',
         default=None,
-        help="Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.). Only used together with --no-web"
+        help="Stop after the specified amount of time, e.g. (300s, 20m, 3h, 1h30m, etc.). \
+            Only used together with --no-web"
     )
-    
+
     # log level
     parser.add_option(
         '--loglevel', '-L',
@@ -203,7 +213,7 @@ def parse_options():
         default='INFO',
         help="Choose between DEBUG/INFO/WARNING/ERROR/CRITICAL. Default is INFO.",
     )
-    
+
     # log file
     parser.add_option(
         '--logfile',
@@ -213,7 +223,7 @@ def parse_options():
         default=None,
         help="Path to log file. If not set, log will go to stdout/stderr",
     )
-    
+
     # if we should print stats in the console
     parser.add_option(
         '--print-stats',
@@ -235,7 +245,8 @@ def parse_options():
     parser.add_option(
         '--no-reset-stats',
         action='store_true',
-        help="[DEPRECATED] Do not reset statistics once hatching has been completed. This is now the default behavior. See --reset-stats to disable",
+        help="[DEPRECATED] Do not reset statistics once hatching has been completed. \
+            This is now the default behavior. See --reset-stats to disable",
     )
 
     parser.add_option(
@@ -243,9 +254,10 @@ def parse_options():
         action='store_true',
         dest='reset_stats',
         default=False,
-        help="Reset statistics once hatching has been completed. Should be set on both master and slaves when running in distributed mode",
+        help="Reset statistics once hatching has been completed. \
+            Should be set on both master and slaves when running in distributed mode",
     )
-    
+
     # List locust commands found in loaded locust files/source files
     parser.add_option(
         '-l', '--list',
@@ -254,7 +266,7 @@ def parse_options():
         default=False,
         help="Show list of possible locust classes and exit"
     )
-    
+
     # Display ratio table of all tasks
     parser.add_option(
         '--show-task-ratio',
@@ -271,7 +283,7 @@ def parse_options():
         default=False,
         help="print json data of the locust classes' task execution ratio"
     )
-    
+
     # Version number (optparse gives you --version but we have to do it
     # ourselves to get -V too. sigh)
     parser.add_option(
@@ -412,13 +424,14 @@ def load_locustfile(path):
     locusts = dict(filter(is_locust, vars(imported).items()))
     return imported.__doc__, locusts
 
+
 def main():
     parser, options, arguments = parse_options()
 
     # setup logging
     setup_logging(options.loglevel, options.logfile)
     logger = logging.getLogger(__name__)
-    
+
     if options.show_version:
         print("Locust %s" % (version,))
         sys.exit(0)
@@ -426,11 +439,13 @@ def main():
     locustfile = find_locustfile(options.locustfile)
 
     if not locustfile:
-        logger.error("Could not find any locustfile! Ensure file ends in '.py' and see --help for available options.")
+        logger.error("Could not find any locustfile! \
+            Ensure file ends in '.py' and see --help for available options.")
         sys.exit(1)
 
     if locustfile == "locust.py":
-        logger.error("The locustfile must not be named `locust.py`. Please rename the file and try again.")
+        logger.error("The locustfile must not be named `locust.py`. \
+            Please rename the file and try again.")
         sys.exit(1)
 
     docstring, locusts = load_locustfile(locustfile)
@@ -457,10 +472,10 @@ def main():
     else:
         # list() call is needed to consume the dict_view object in Python 3
         locust_classes = list(locusts.values())
-    
+
     if options.show_task_ratio:
         console_logger.info("\n Task ratio per locust class")
-        console_logger.info( "-" * 80)
+        console_logger.info("-" * 80)
         print_task_ratio(locust_classes)
         console_logger.info("\n Total task ratio")
         console_logger.info("-" * 80)
@@ -469,12 +484,12 @@ def main():
     if options.show_task_ratio_json:
         from json import dumps
         task_data = {
-            "per_class": get_task_ratio_dict(locust_classes), 
+            "per_class": get_task_ratio_dict(locust_classes),
             "total": get_task_ratio_dict(locust_classes, total=True)
         }
         console_logger.info(dumps(task_data))
         sys.exit(0)
-    
+
     if options.run_time:
         if not options.no_web:
             logger.error("The --run-time argument can only be used together with --no-web")
@@ -484,8 +499,10 @@ def main():
         except ValueError:
             logger.error("Valid --run-time formats are: 20, 20s, 3m, 2h, 1h20m, 3h30m10s, etc.")
             sys.exit(1)
+
         def spawn_run_time_limit_greenlet():
             logger.info("Run time limit set to %s seconds" % options.run_time)
+
             def timelimit_stop():
                 logger.info("Time limit reached. Stopping Locust.")
                 runners.locust_runner.quit()
@@ -495,7 +512,7 @@ def main():
         # spawn web greenlet
         logger.info("Starting web monitor at %s:%s" % (options.web_host or "*", options.port))
         main_greenlet = gevent.spawn(web.start, locust_classes, options)
-    
+
     if not options.master and not options.slave:
         runners.locust_runner = LocalLocustRunner(locust_classes, options)
         # spawn client spawning/hatching greenlet
@@ -507,7 +524,7 @@ def main():
     elif options.master:
         runners.locust_runner = MasterLocustRunner(locust_classes, options)
         if options.no_web:
-            while len(runners.locust_runner.clients.ready)<options.expect_slaves:
+            while len(runners.locust_runner.clients.ready) < options.expect_slaves:
                 logging.info("Waiting for slaves to be ready, %s of %s connected",
                              len(runners.locust_runner.clients.ready), options.expect_slaves)
                 time.sleep(1)
@@ -518,7 +535,8 @@ def main():
                 spawn_run_time_limit_greenlet()
     elif options.slave:
         if options.run_time:
-            logger.error("--run-time should be specified on the master node, and not on slave nodes")
+            logger.error("--run-time should be specified on the master node, \
+                and not on slave nodes")
             sys.exit(1)
         try:
             runners.locust_runner = SlaveLocustRunner(locust_classes, options)
@@ -526,7 +544,7 @@ def main():
         except socket.error as e:
             logger.error("Failed to connect to the Locust master: %s", e)
             sys.exit(-1)
-    
+
     if not options.only_summary and (options.print_stats or (options.no_web and not options.slave)):
         # spawn stats printing greenlet
         gevent.spawn(stats_printer)
@@ -534,7 +552,6 @@ def main():
     if options.csvfilebase:
         gevent.spawn(stats_writer, options.csvfilebase)
 
-    
     def shutdown(code=0):
         """
         Shut down locust by firing quitting event, printing/writing stats and exiting
@@ -552,13 +569,13 @@ def main():
             write_stat_csvs(options.csvfilebase)
         print_error_report()
         sys.exit(code)
-    
+
     # install SIGTERM handler
     def sig_term_handler():
         logger.info("Got SIGTERM signal")
         shutdown(0)
     gevent.signal(signal.SIGTERM, sig_term_handler)
-    
+
     try:
         logger.info("Starting Locust %s" % version)
         main_greenlet.join()
@@ -567,7 +584,9 @@ def main():
             code = options.exit_code_on_error
         shutdown(code=code)
     except KeyboardInterrupt as e:
+        print(f'Keyboard interupt: {e}')
         shutdown(0)
+
 
 if __name__ == '__main__':
     main()

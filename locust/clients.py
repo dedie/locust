@@ -15,6 +15,7 @@ from six.moves.urllib.parse import urlparse, urlunparse
 
 from . import events
 from .exception import CatchResponseError, ResponseError
+# from .stats import global_stats
 
 absolute_http_url_regexp = re.compile(r"^https?://", re.I)
 
@@ -43,17 +44,23 @@ class HttpSession(requests.Session):
     Each of the methods for making requests also takes two additional optional arguments which
     are Locust specific and doesn't exist in python-requests. These are:
 
-    :param name: (optional) An argument that can be specified to use as label in Locust's statistics instead of the URL path.
-                 This can be used to group different URL's that are requested into a single entry in Locust's statistics.
-    :param catch_response: (optional) Boolean argument that, if set, can be used to make a request return a context manager
-                           to work as argument to a with statement. This will allow the request to be marked as a fail based on the content of the
-                           response, even if the response code is ok (2xx). The opposite also works, one can use catch_response to catch a request
-                           and then mark it as successful even if the response code was not (i.e 500 or 404).
+    :param name: (optional) An argument that can be specified to use as label in Locust's
+                 statistics instead of the URL path.
+                 This can be used to group different URL's that are requested into a single
+                 entry in Locust's statistics.
+    :param catch_response: (optional) Boolean argument that, if set, can be used to make a
+                           request return a context manager to work as argument to a with statement.
+                           This will allow the request to be marked as a fail based on the content
+                           of the response, even if the response code is ok (2xx).
+                           The opposite also works, one can use catch_response to catch a request
+                           and then mark it as successful even if the response code was not
+                           (i.e 500 or 404).
     """
     def __init__(self, base_url, *args, **kwargs):
         super(HttpSession, self).__init__(*args, **kwargs)
 
         self.base_url = base_url
+        # self.stats = global_stats
 
         # Check for basic authentication
         parsed_url = urlparse(self.base_url)
@@ -63,7 +70,13 @@ class HttpSession(requests.Session):
                 netloc += ":%d" % parsed_url.port
 
             # remove username and password from the base_url
-            self.base_url = urlunparse((parsed_url.scheme, netloc, parsed_url.path, parsed_url.params, parsed_url.query, parsed_url.fragment))
+            self.base_url = urlunparse((
+                parsed_url.scheme,
+                netloc,
+                parsed_url.path,
+                parsed_url.params,
+                parsed_url.query,
+                parsed_url.fragment))
             # configure requests to use basic auth
             self.auth = HTTPBasicAuth(parsed_url.username, parsed_url.password)
 
@@ -82,27 +95,38 @@ class HttpSession(requests.Session):
         :param method: method for the new :class:`Request` object.
         :param url: URL for the new :class:`Request` object.
         :param src_ip: Source IP for requests
-        :param name: (optional) An argument that can be specified to use as label in Locust's statistics instead of the URL path.
-          This can be used to group different URL's that are requested into a single entry in Locust's statistics.
-        :param catch_response: (optional) Boolean argument that, if set, can be used to make a request return a context manager
-          to work as argument to a with statement. This will allow the request to be marked as a fail based on the content of the
-          response, even if the response code is ok (2xx). The opposite also works, one can use catch_response to catch a request
-          and then mark it as successful even if the response code was not (i.e 500 or 404).
-        :param params: (optional) Dictionary or bytes to be sent in the query string for the :class:`Request`.
+        :param name: (optional) An argument that can be specified to use as label in Locust's
+                    statistics instead of the URL path.
+                    This can be used to group different URL's that are requested into a single
+                    entry in Locust's statistics.
+        :param catch_response: (optional) Boolean argument that, if set, can be used to make a
+                                request return a context manager to work as argument to a with
+                                statement. This will allow the request to be marked as a fail based
+                                on the content of the response, even if the response code is ok
+                                (2xx). The opposite also works, one can use catch_response to
+                                catch a request and then mark it as successful even if the response
+                                code was not (i.e 500 or 404).
+        :param params: (optional) Dictionary or bytes to be sent in the query string for
+                        the :class:`Request`.
         :param data: (optional) Dictionary or bytes to send in the body of the :class:`Request`.
         :param headers: (optional) Dictionary of HTTP Headers to send with the :class:`Request`.
         :param cookies: (optional) Dict or CookieJar object to send with the :class:`Request`.
-        :param files: (optional) Dictionary of ``'filename': file-like-objects`` for multipart encoding upload.
+        :param files: (optional) Dictionary of ``'filename': file-like-objects`` for multipart
+                        encoding upload.
         :param auth: (optional) Auth tuple or callable to enable Basic/Digest/Custom HTTP Auth.
-        :param timeout: (optional) How long in seconds to wait for the server to send data before giving up, as a float,
-            or a (`connect timeout, read timeout <user/advanced.html#timeouts>`_) tuple.
+        :param timeout: (optional) How long in seconds to wait for the server to send data
+                        before giving up, as a float, or a
+                        (`connect timeout, read timeout <user/advanced.html#timeouts>`_) tuple.
         :type timeout: float or tuple
         :param allow_redirects: (optional) Set to True by default.
         :type allow_redirects: bool
         :param proxies: (optional) Dictionary mapping protocol to the URL of the proxy.
-        :param stream: (optional) whether to immediately download the response content. Defaults to ``False``.
-        :param verify: (optional) if ``True``, the SSL cert will be verified. A CA_BUNDLE path can also be provided.
-        :param cert: (optional) if String, path to ssl client cert file (.pem). If Tuple, ('cert', 'key') pair.
+        :param stream: (optional) whether to immediately download the response content.
+                        Defaults to ``False``.
+        :param verify: (optional) if ``True``, the SSL cert will be verified.
+                        A CA_BUNDLE path can also be provided.
+        :param cert: (optional) if String, path to ssl client cert file (.pem).
+                        If Tuple, ('cert', 'key') pair.
         """
 
         # prepend url with hostname unless it's already an absolute URL
@@ -114,13 +138,17 @@ class HttpSession(requests.Session):
         # set up pre_request hook for attaching meta data to the request object
         request_meta["method"] = method
         request_meta["start_time"] = time.time()
+        request_meta["src_ip"] = src_ip
 
         response = self._send_request_safe_mode(method, url, src_ip, **kwargs)
 
         # record the consumed time
         request_meta["response_time"] = (time.time() - request_meta["start_time"]) * 1000
 
-        request_meta["name"] = name or (response.history and response.history[0] or response).request.path_url
+        request_meta["name"] = name or (
+            response.history and
+            response.history[0] or
+            response).request.path_url
 
         # get the length of the content, but if the argument stream is set to True, we take
         # the size from the content-length header, in order to not trigger fetching of the body
@@ -139,6 +167,7 @@ class HttpSession(requests.Session):
                 events.request_failure.fire(
                     request_type=request_meta["method"],
                     name=request_meta["name"],
+                    src_ip=request_meta["src_ip"],
                     response_time=request_meta["response_time"],
                     exception=e,
                 )
@@ -146,6 +175,7 @@ class HttpSession(requests.Session):
                 events.request_success.fire(
                     request_type=request_meta["method"],
                     name=request_meta["name"],
+                    src_ip=request_meta["src_ip"],
                     response_time=request_meta["response_time"],
                     response_length=request_meta["content_size"],
                 )
@@ -225,6 +255,7 @@ class ResponseContextManager(LocustResponse):
         events.request_success.fire(
             request_type=self.locust_request_meta["method"],
             name=self.locust_request_meta["name"],
+            src_ip=self.locust_request_meta["src_ip"],
             response_time=self.locust_request_meta["response_time"],
             response_length=self.locust_request_meta["content_size"],
         )
@@ -250,6 +281,7 @@ class ResponseContextManager(LocustResponse):
             request_type=self.locust_request_meta["method"],
             name=self.locust_request_meta["name"],
             response_time=self.locust_request_meta["response_time"],
+            src_ip=self.locust_request_meta["src_ip"],
             exception=exc,
         )
         self._is_reported = True
