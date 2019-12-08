@@ -162,8 +162,8 @@ class HttpSession(requests.Session):
             return ResponseContextManager(response)
         else:
             if name:
-                # Since we use the Exception message when grouping failures, in order to not get 
-                # multiple failure entries for different URLs for the same name argument, we need 
+                # Since we use the Exception message when grouping failures, in order to not get
+                # multiple failure entries for different URLs for the same name argument, we need
                 # to temporarily override the reponse.url attribute
                 orig_url = response.url
                 response.url = name
